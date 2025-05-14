@@ -1,0 +1,184 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dear Café CDO</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    /* Your existing styles go here */
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <img src="logo.jpg" alt="Logo" style="width:50px">
+    <div class="logo">Dear Café CDO</div>
+    <div class="menu">
+      <a href="#">Best Sellers</a>
+      <a href="#">Menu</a>
+      <a href="meeee.html">My Profile</a>
+    </div>
+    <div class="buttons">
+      <button class="Cart" onclick="toggleCart()">Brown Bag Cart</button>
+      <button class="logout" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="menu-section">
+    <h1>BEST SELLING PRODUCTS</h1>
+    <div class="products">
+      <div class="product-card">
+        <img src="sandwich.jpg" alt="Sandwich">
+        <h3>Hotdog Sandwich</h3>
+        <p>P35-P65</p>
+        <button onclick="addToCart('Hotdog Sandwich', 35)">Add to Cart</button>
+      </div>
+      <div class="product-card">
+        <img src="promo milktea.jpg" alt="milktea">
+        <h3>Milktea</h3>
+        <p>P99</p>
+        <button onclick="addToCart('Milktea', 99)">Add to Cart</button>
+      </div>
+      <div class="product-card">
+        <img src="pater.jpg" alt="Pater">
+        <h3>Pater</h3>
+        <p>P20</p>
+        <button onclick="addToCart('Pater', 20)">Add to Cart</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cart-section" id="cartSection">
+    <div class="cart-header">
+      <h2>Brown Bag Cart</h2>
+    </div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-footer">
+      <button onclick="checkout()">Checkout</button>
+    </div>
+  </div>
+
+  <div id="orderForm" style="display:none;">
+    <!-- Order form details -->
+    <button onclick="submitOrder()">Confirm Order</button>
+    <button onclick="closeForm()">Cancel</button>
+  </div>
+
+  <script>
+    // Initialize Supabase client
+    const supabaseUrl = 'https://your-project.supabase.co';
+    const supabaseKey = 'public-anon-key';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    const cart = [];
+
+    // Add to cart
+    function addToCart(productName, productPrice) {
+      const existingProduct = cart.find(item => item.name === productName);
+      if (existingProduct) {
+        existingProduct.quantity++;
+      } else {
+        cart.push({ name: productName, price: productPrice, quantity: 1 });
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      const cartItems = document.getElementById('cartItems');
+      cartItems.innerHTML = '';
+      cart.forEach(item => {
+        cartItems.innerHTML += `
+          <div class="cart-item">
+            <span>${item.name} x ${item.quantity}</span>
+            <span>P${item.price * item.quantity}</span>
+            <button onclick="removeFromCart('${item.name}')">Remove</button>
+          </div>`;
+      });
+    }
+
+    // Remove from cart
+    function removeFromCart(productName) {
+      const index = cart.findIndex(item => item.name === productName);
+      if (index !== -1) cart.splice(index, 1);
+      renderCart();
+    }
+
+    // Checkout process
+    function checkout() {
+      if (cart.length === 0) return alert('Your cart is empty!');
+      document.getElementById('orderForm').style.display = 'block';
+    }
+
+    // Order form submit
+    function submitOrder() {
+      const name = document.getElementById('customerName').value.trim();
+      const delivery = document.getElementById('deliveryOption').value;
+      const address = document.getElementById('deliveryAddress').value.trim();
+      const payment = document.getElementById('paymentMethod').value;
+      const gcashNum = document.getElementById('GCashNumber').value.trim();
+      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+      if (!name) return alert('Please enter your name.');
+      if (delivery === 'delivery' && !address) return alert('Please enter a delivery address.');
+      if (payment === 'gcash' && !gcashNum) return alert('Please enter your GCash number.');
+
+      const orderData = {
+        customerName: name,
+        items: cart,
+        total,
+        deliveryOption: delivery,
+        address,
+        paymentMethod: payment,
+        gcashNumber: payment === 'gcash' ? gcashNum : null
+      };
+
+      // Insert order into Supabase table
+      supabase
+        .from('orders')
+        .insert([
+          {
+            customer_name: name,
+            items: JSON.stringify(cart),
+            total: total,
+            delivery_option: delivery,
+            address: address,
+            payment_method: payment,
+            gcash_number: gcashNum
+          }
+        ])
+        .then(response => {
+          if (response.error) {
+            console.error(response.error);
+            alert('Failed to place order.');
+          } else {
+            alert('Order placed successfully!');
+            cart.length = 0;
+            renderCart();
+            closeForm();
+            toggleCart();
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Failed to submit order.');
+        });
+    }
+
+    function closeForm() {
+      document.getElementById('orderForm').style.display = 'none';
+    }
+
+    function logout() {
+      alert('You have been logged out!');
+      window.location.href = 'login.html';
+    }
+
+    // Toggle cart visibility
+    function toggleCart() {
+      const cartSection = document.getElementById('cartSection');
+      cartSection.style.display = cartSection.style.display === 'block' ? 'none' : 'block';
+    }
+  </script>
+</body>
+</html>
